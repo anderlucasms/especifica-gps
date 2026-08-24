@@ -21,8 +21,9 @@
         .result-box { background-color: #f1f3f5; border: 1.5px solid #1a233a; border-radius: 8px; padding: 10px; font-size: 0.85rem; }
         
         .summary-box { border-top: 1px dashed #ccc; padding-top: 10px; }
-        .summary-title { font-weight: bold; margin-bottom: 6px; font-size: 0.9rem; }
-        .item-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; border-bottom: 1px solid #eee; padding-bottom: 2px; }
+        .summary-title { font-weight: bold; margin-bottom: 6px; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+        .item-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        .empty-info { font-size: 0.8rem; color: #777; font-style: italic; }
 
         .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-align: center; font-size: 0.95rem; }
         .btn-finish { background-color: #28a745; color: #fff; }
@@ -53,7 +54,9 @@
         </div>
 
         <div class="summary-box">
-            <div class="summary-title">Contagem Atual:</div>
+            <div class="summary-title">
+                <span>Últimas 3 peças bipadas:</span>
+            </div>
             <div id="items-list"></div>
         </div>
 
@@ -91,22 +94,37 @@
     <script>
         const setor = localStorage.getItem('setorAtivo') || 'GERAL';
         let dadosInventario = JSON.parse(localStorage.getItem('dadosInventario')) || [];
+        // Recupera o histórico das últimas bipagens (ou inicia um vetor vazio)
+        let ultimosBipados = JSON.parse(localStorage.getItem('ultimosBipados')) || [];
+        
         let itemPendente = null;
         let html5QrCode = null;
 
         document.getElementById('sector-title').innerText = `LEITOR - SETOR ${setor}`;
 
+        // Exibe na tela apenas as últimas 3 peças bipadas
         function atualizarTabelaUI() {
             const listContainer = document.getElementById('items-list');
             listContainer.innerHTML = '';
-            
-            dadosInventario.forEach(item => {
-                listContainer.innerHTML += `
-                    <div class="item-row">
-                        <span>${item.desc} (${item.yg})</span>
-                        <span><strong>Qtd: ${item.qtd}</strong></span>
-                    </div>
-                `;
+
+            if (ultimosBipados.length === 0) {
+                listContainer.innerHTML = '<p class="empty-info">Nenhuma peça bipada até o momento.</p>';
+                return;
+            }
+
+            // Pega no máximo as 3 últimas peças
+            const ultimos3 = ultimosBipados.slice(0, 3);
+
+            ultimos3.forEach(yg => {
+                const item = dadosInventario.find(i => i.yg === yg);
+                if (item) {
+                    listContainer.innerHTML += `
+                        <div class="item-row">
+                            <span>${item.desc} <br><small style="color:#666">${item.yg}</small></span>
+                            <span><strong>Qtd Total: ${item.qtd}</strong></span>
+                        </div>
+                    `;
+                }
             });
         }
 
@@ -150,7 +168,18 @@
         function confirmarSomaItem() {
             if (itemPendente) {
                 itemPendente.qtd += 1;
+                
+                // Adiciona o código no início do histórico das peças bipadas
+                ultimosBipados.unshift(itemPendente.yg);
+                // Mantém apenas os últimos 3 no histórico
+                if (ultimosBipados.length > 3) {
+                    ultimosBipados = ultimosBipados.slice(0, 3);
+                }
+
+                // Salva no localStorage
                 localStorage.setItem('dadosInventario', JSON.stringify(dadosInventario));
+                localStorage.setItem('ultimosBipados', JSON.stringify(ultimosBipados));
+
                 atualizarTabelaUI();
 
                 document.getElementById('result').innerHTML = `
@@ -198,7 +227,6 @@
             document.getElementById('modal-finalizar').style.display = 'none';
         }
 
-        // --- GERAÇÃO DO ARQUIVO EXCEL (.XLSX) ---
         function salvarEGerarExcel() {
             const colabGps = document.getElementById('colabGps').value.trim();
             const colabManut = document.getElementById('colabManutencao').value.trim();
@@ -210,17 +238,16 @@
 
             const hoje = new Date().toISOString().split('T')[0];
 
-            // Montagem do cabeçalho do relatório no Excel
             const dadosExcel = [
                 ["INVENTÁRIO - SETOR", setor],
                 ["DATA DE REALIZAÇÃO", hoje],
                 ["COLABORADOR GPS", colabGps],
                 ["COLABORADOR MANUTENÇÃO", colabManut],
-                [], // Linha em branco
-                ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "QUANTIDADE"] // Cabeçalho da tabela
+                [],
+                ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "QUANTIDADE"]
             ];
 
-            // Adiciona as linhas com os itens contados
+            // Exporta TODOS os itens cadastrados no setor para o Excel
             dadosInventario.forEach(item => {
                 dadosExcel.push([
                     item.seq,
@@ -231,11 +258,9 @@
                 ]);
             });
 
-            // Criação da pasta de trabalho (Workbook) e da planilha (Worksheet)
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(dadosExcel);
 
-            // Ajusta a largura das colunas
             ws['!cols'] = [
                 { wch: 8 },  // SEQ
                 { wch: 15 }, // SETOR
@@ -246,11 +271,12 @@
 
             XLSX.utils.book_append_sheet(wb, ws, "Inventario");
 
-            // Gera e dispara o download do arquivo .xlsx
             const nomeArquivo = `inventario_${setor}_${hoje}.xlsx`;
             XLSX.writeFile(wb, nomeArquivo);
 
+            // Limpa o inventário e histórico da memória ao finalizar
             localStorage.removeItem('dadosInventario');
+            localStorage.removeItem('ultimosBipados');
             document.getElementById('modal-finalizar').style.display = 'none';
             alert('Inventário Excel gerado e salvo com sucesso!');
             window.location.href = 'index.html';
