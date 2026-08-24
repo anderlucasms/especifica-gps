@@ -1,51 +1,210 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		
-		<title>Inventário Específica GPS</title>
-		
-		<script src="https://unpkg.com/html5-qrcode"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-		<!-- Estilo CSS -->
-		<link rel="stylesheet" type="text/css" href="estilo.css">
-		<!-- JavaScript JS -->
-		<script src="script.js" defer></script>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Especifica - GPS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #111827;
+            --text-sub: #6b7280;
+            --border-color: #e5e7eb;
+            
+            /* Cores dos Setores */
+            --color-montagem: #f59e0b;
+            --color-pintura: #10b981;
+            --color-funilaria: #eab308;
+            --color-prensas: #3b82f6;
+        }
 
-	</head>
-	<body>
-		<div class="container">
-	        <header class="header-box">
-	            <h1>ESPECIFICA - GPS</h1>
-	        </header>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-	        <nav class="nav-list">
-	            <button onclick="selecionarSetor('MONTAGEM', listaMontagem)" class="btn-link btn-montagem">MONTAGEM</button>
-	            <button onclick="selecionarSetor('PINTURA', listaPintura)" class="btn-link btn-pintura">PINTURA</button>
-	            <button onclick="selecionarSetor('FUNILARIA', listaFunilaria)" class="btn-link btn-funilaria">FUNILARIA</button>
-	            <button onclick="selecionarSetor('PRENSAS', listaPrensas)" class="btn-link btn-prensas">PRENSAS</button>
-	        </nav>
-	    </div>
+        body {
+            background: linear-gradient(135deg, #eef2f7 0%, #e2e8f0 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-	    <!-- Importação dos arquivos externos de listas -->
-	    <script src="listas/montagem.js"></script>
-	    <script src="listas/pintura.js"></script>
-	    <script src="listas/funilaria.js"></script>
-	    <script src="listas/prensas.js"></script>
+        .container {
+            width: 100%;
+            max-width: 380px;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 28px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-color);
+        }
 
-	    <script>
-	        function selecionarSetor(nomeSetor, listaDoSetor) {
-	            // Inicializa a quantidade com 0 para todos os itens da lista
-	            const listaComQtd = listaDoSetor.map(item => ({ ...item, qtd: 0 }));
+        .header-box {
+            width: 100%;
+            background: linear-gradient(135deg, #1f385c 0%, #14243b 100%);
+            border-radius: 16px;
+            padding: 20px 16px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(31, 56, 92, 0.25);
+        }
 
-	            // Salva o setor e os dados na memória (localStorage)
-	            localStorage.setItem('setorAtivo', nomeSetor);
-	            localStorage.setItem('dadosInventario', JSON.stringify(listaComQtd));
+        .header-box h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
 
-	            // Redireciona para o leitor
-	            window.location.href = 'leitor.html';
-	        }
-	    </script>
-	</body>
+        .header-box p {
+            font-size: 0.8rem;
+            color: #93c5fd;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        .section-title {
+            width: 100%;
+            text-align: left;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: -12px;
+            padding-left: 4px;
+        }
+
+        .nav-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-link {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            padding: 16px 20px;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Efeito de Clique / Animação */
+        .btn-link:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Seta Indicativa dentro do botão */
+        .btn-link::after {
+            content: '→';
+            font-size: 1.2rem;
+            font-weight: 400;
+            opacity: 0.9;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-link:active::after {
+            transform: translateX(4px);
+        }
+
+        /* Cores em gradiente para cada setor */
+        .btn-montagem {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #ffffff;
+        }
+
+        .btn-pintura {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+        }
+
+        .btn-funilaria {
+            background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+            color: #ffffff;
+        }
+
+        .btn-prensas {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: #ffffff;
+        }
+
+        .footer-note {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="header-box">
+            <h1>Especifica - GPS</h1>
+            <p>Contagem e Inventário Físico</p>
+        </header>
+
+        <span class="section-title">Selecione o Setor</span>
+
+        <nav class="nav-list">
+            <button onclick="selecionarSetor('MONTAGEM', listaMontagem)" class="btn-link btn-montagem">
+                <span>MONTAGEM</span>
+            </button>
+            <button onclick="selecionarSetor('PINTURA', listaPintura)" class="btn-link btn-pintura">
+                <span>PINTURA</span>
+            </button>
+            <button onclick="selecionarSetor('FUNILARIA', listaFunilaria)" class="btn-link btn-funilaria">
+                <span>FUNILARIA</span>
+            </button>
+            <button onclick="selecionarSetor('PRENSAS', listaPrensas)" class="btn-link btn-prensas">
+                <span>PRENSAS</span>
+            </button>
+        </nav>
+
+        <div class="footer-note">
+            Selecione uma opção para iniciar a leitura via câmera.
+        </div>
+    </div>
+
+    <script src="listas/montagem.js"></script>
+    <script src="listas/pintura.js"></script>
+    <script src="listas/funilaria.js"></script>
+    <script src="listas/prensas.js"></script>
+
+    <script>
+        function selecionarSetor(nomeSetor, listaDoSetor) {
+            const listaComQtd = listaDoSetor.map(item => ({ ...item, qtd: 0 }));
+
+            localStorage.setItem('setorAtivo', nomeSetor);
+            localStorage.setItem('dadosInventario', JSON.stringify(listaComQtd));
+            localStorage.removeItem('ultimosBipados'); // Reseta histórico de leitura do setor anterior
+
+            window.location.href = 'leitor.html';
+        }
+    </script>
+</body>
 </html>
