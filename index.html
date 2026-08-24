@@ -16,20 +16,36 @@
 	</head>
 	<body>
 		<div class="container">
-        <!-- Título Superior -->
-        <header class="header-box">
-            <h1>ESPECIFICA - GPS</h1>
-        </header>
+	        <header class="header-box">
+	            <h1>ESPECIFICA - GPS</h1>
+	        </header>
 
-        <!-- Links de Navegação -->
-        <nav class="nav-list">
-            <button onclick="selecionarSetor('MONTAGEM')" class="btn-link btn-montagem">MONTAGEM</button>
-            <button onclick="selecionarSetor('PINTURA')" class="btn-link btn-pintura">PINTURA</button>
-            <button onclick="selecionarSetor('FUNILARIA')" class="btn-link btn-funilaria">FUNILARIA</button>
-            <button onclick="selecionarSetor('PRENSAS')" class="btn-link btn-prensas">PRENSAS</button>
-        </nav>
-    </div>
-		
+	        <nav class="nav-list">
+	            <button onclick="selecionarSetor('MONTAGEM', listaMontagem)" class="btn-link btn-montagem">MONTAGEM</button>
+	            <button onclick="selecionarSetor('PINTURA', listaPintura)" class="btn-link btn-pintura">PINTURA</button>
+	            <button onclick="selecionarSetor('FUNILARIA', listaFunilaria)" class="btn-link btn-funilaria">FUNILARIA</button>
+	            <button onclick="selecionarSetor('PRENSAS', listaPrensas)" class="btn-link btn-prensas">PRENSAS</button>
+	        </nav>
+	    </div>
+
+	    <!-- Importação dos arquivos externos de listas -->
+	    <script src="listas/montagem.js"></script>
+	    <script src="listas/pintura.js"></script>
+	    <script src="listas/funilaria.js"></script>
+	    <script src="listas/prensas.js"></script>
+
+	    <script>
+	        function selecionarSetor(nomeSetor, listaDoSetor) {
+	            // Inicializa a quantidade com 0 para todos os itens da lista
+	            const listaComQtd = listaDoSetor.map(item => ({ ...item, qtd: 0 }));
+
+	            // Salva o setor e os dados na memória (localStorage)
+	            localStorage.setItem('setorAtivo', nomeSetor);
+	            localStorage.setItem('dadosInventario', JSON.stringify(listaComQtd));
+
+	            // Redireciona para o leitor
+	            window.location.href = 'leitor.html';
+	        }
+	    </script>
 	</body>
 </html>
-
