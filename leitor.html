@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leitor - Inventário</title>
+    <!-- Biblioteca HTML5-QRCode -->
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Biblioteca SheetJS para geração de arquivos Excel (.xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
         body { background-color: #f8f9fa; display: flex; justify-content: center; padding: 16px; }
@@ -13,23 +16,26 @@
         .header-box { background-color: #ededed; border: 2px solid #1f385c; border-radius: 12px; padding: 10px; text-align: center; }
         .header-box h2 { font-size: 1.1rem; color: #000; }
 
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; background-color: #000; min-height: 200px; }
         
         .result-box { background-color: #f1f3f5; border: 1.5px solid #1a233a; border-radius: 8px; padding: 10px; font-size: 0.85rem; }
         
-        .summary-box { border-top: 1px dashed #ccc; pt: 10px; }
+        .summary-box { border-top: 1px dashed #ccc; padding-top: 10px; }
         .summary-title { font-weight: bold; margin-bottom: 6px; font-size: 0.9rem; }
         .item-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; border-bottom: 1px solid #eee; padding-bottom: 2px; }
 
         .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-align: center; font-size: 0.95rem; }
         .btn-finish { background-color: #28a745; color: #fff; }
-        .btn-back { background-color: #6c757d; color: #fff; text-decoration: none; display: block; margin-top: 4px; }
+        .btn-back { background-color: #6c757d; color: #fff; border: none; margin-top: 4px; }
 
-        /* Estilo do Modal de Finalização */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 16px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 16px; z-index: 100; }
         .modal-body { background: #fff; padding: 20px; border-radius: 10px; width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; border: 2px solid #1f385c; }
+        .modal-body h3 { font-size: 1.1rem; color: #1f385c; text-align: center; }
         .modal-body label { font-size: 0.85rem; font-weight: bold; }
         .modal-body input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
+        
+        .btn-confirm { background-color: #28a745; color: #fff; }
+        .btn-cancel { background-color: #dc3545; color: #fff; }
         .btn-save { background-color: #1f385c; color: #fff; }
     </style>
 </head>
@@ -40,27 +46,33 @@
             <h2 id="sector-title">LEITOR - INVENTÁRIO</h2>
         </header>
 
-        <!-- Câmera do Leitor -->
         <div id="reader"></div>
 
-        <!-- Última Leitura -->
         <div class="result-box" id="result">
-            <p><strong>Status:</strong> Aguardando bip...</p>
+            <p><strong>Status:</strong> Aguardando leitura...</p>
         </div>
 
-        <!-- Lista de Contagem -->
         <div class="summary-box">
             <div class="summary-title">Contagem Atual:</div>
             <div id="items-list"></div>
         </div>
 
-        <!-- Ações -->
-        <button onclick="abrirModal()" class="btn btn-finish">FINALIZAR INVENTÁRIO</button>
-        <a href="index.html" class="btn btn-back">VOLTAR</a>
+        <button onclick="abrirModalFinalizar()" class="btn btn-finish">FINALIZAR INVENTÁRIO</button>
+        <button onclick="confirmarVoltar()" class="btn btn-back">VOLTAR</button>
     </div>
 
-    <!-- Modal para Responsáveis -->
-    <div class="modal-overlay" id="modal">
+    <!-- Modal de Confirmação do Item Bipado -->
+    <div class="modal-overlay" id="modal-confirmar-bip">
+        <div class="modal-body">
+            <h3>Confirmar Item Bipado</h3>
+            <div id="dados-item-bipado"></div>
+            <button onclick="confirmarSomaItem()" class="btn btn-confirm">CONFIRMAR E SOMAR (+1)</button>
+            <button onclick="cancelarBip()" class="btn btn-cancel">CANCELAR</button>
+        </div>
+    </div>
+
+    <!-- Modal de Finalização -->
+    <div class="modal-overlay" id="modal-finalizar">
         <div class="modal-body">
             <h3>Responsáveis pelo Inventário</h3>
             <div>
@@ -71,13 +83,16 @@
                 <label>Colaborador-Manutenção:</label>
                 <input type="text" id="colabManutencao" placeholder="Nome do colaborador Manutenção">
             </div>
-            <button onclick="salvarEGerarXML()" class="btn btn-save">SALVAR E GERAR XML</button>
+            <button onclick="salvarEGerarExcel()" class="btn btn-save">SALVAR E GERAR EXCEL</button>
+            <button onclick="fecharModalFinalizar()" class="btn btn-cancel">VOLTAR</button>
         </div>
     </div>
 
     <script>
         const setor = localStorage.getItem('setorAtivo') || 'GERAL';
         let dadosInventario = JSON.parse(localStorage.getItem('dadosInventario')) || [];
+        let itemPendente = null;
+        let html5QrCode = null;
 
         document.getElementById('sector-title').innerText = `LEITOR - SETOR ${setor}`;
 
@@ -95,21 +110,35 @@
             });
         }
 
+        function iniciarCameraTraseira() {
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 220, height: 120 } };
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                () => {}
+            ).catch(err => {
+                console.error("Erro ao abrir a câmera traseira:", err);
+                alert("Erro ao acessar a câmera traseira. Verifique as permissões do navegador.");
+            });
+        }
+
         function onScanSuccess(decodedText) {
             const item = dadosInventario.find(i => i.yg === decodedText);
             const resultDiv = document.getElementById('result');
 
             if (item) {
-                item.qtd += 1;
-                localStorage.setItem('dadosInventario', JSON.stringify(dadosInventario));
-                atualizarTabelaUI();
+                html5QrCode.pause();
+                itemPendente = item;
 
-                resultDiv.innerHTML = `
-                    <p style="color: green;"><strong>✔ Código Contabilizado!</strong></p>
-                    <p><strong>Item:</strong> ${item.desc}</p>
-                    <p><strong>Código (YG):</strong> ${item.yg}</p>
-                    <p><strong>Total Bipado:</strong> ${item.qtd}</p>
+                document.getElementById('dados-item-bipado').innerHTML = `
+                    <p><strong>Código:</strong> ${item.yg}</p>
+                    <p><strong>Descrição:</strong> ${item.desc}</p>
+                    <p><strong>Qtd Atual:</strong> ${item.qtd}</p>
                 `;
+                document.getElementById('modal-confirmar-bip').style.display = 'flex';
             } else {
                 resultDiv.innerHTML = `
                     <p style="color: red;"><strong>✖ Código Não Encontrado!</strong></p>
@@ -118,16 +147,59 @@
             }
         }
 
-        // Inicializa o Scanner da Câmera
-        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 220, height: 120 } }, false);
-        html5QrcodeScanner.render(onScanSuccess, () => {});
+        function confirmarSomaItem() {
+            if (itemPendente) {
+                itemPendente.qtd += 1;
+                localStorage.setItem('dadosInventario', JSON.stringify(dadosInventario));
+                atualizarTabelaUI();
 
-        // Funções do Modal
-        function abrirModal() {
-            document.getElementById('modal').style.display = 'flex';
+                document.getElementById('result').innerHTML = `
+                    <p style="color: green;"><strong>✔ Contagem Atualizada!</strong></p>
+                    <p><strong>Item:</strong> ${itemPendente.desc}</p>
+                    <p><strong>Total Bipado:</strong> ${itemPendente.qtd}</p>
+                `;
+            }
+            fecharModalConfirmacao();
         }
 
-        function salvarEGerarXML() {
+        function cancelarBip() {
+            document.getElementById('result').innerHTML = `
+                <p style="color: #6c757d;"><strong>Leitura cancelada pelo usuário.</strong></p>
+            `;
+            fecharModalConfirmacao();
+        }
+
+        function fecharModalConfirmacao() {
+            itemPendente = null;
+            document.getElementById('modal-confirmar-bip').style.display = 'none';
+            html5QrCode.resume();
+        }
+
+        function confirmarVoltar() {
+            const resposta = confirm("Deseja realmente voltar?\n\nOs dados não finalizados continuarão salvos até que um novo setor seja selecionado.");
+            if (resposta) {
+                if (html5QrCode) {
+                    html5QrCode.stop().then(() => {
+                        window.location.href = 'index.html';
+                    }).catch(() => {
+                        window.location.href = 'index.html';
+                    });
+                } else {
+                    window.location.href = 'index.html';
+                }
+            }
+        }
+
+        function abrirModalFinalizar() {
+            document.getElementById('modal-finalizar').style.display = 'flex';
+        }
+
+        function fecharModalFinalizar() {
+            document.getElementById('modal-finalizar').style.display = 'none';
+        }
+
+        // --- GERAÇÃO DO ARQUIVO EXCEL (.XLSX) ---
+        function salvarEGerarExcel() {
             const colabGps = document.getElementById('colabGps').value.trim();
             const colabManut = document.getElementById('colabManutencao').value.trim();
 
@@ -136,51 +208,56 @@
                 return;
             }
 
-            // Data atual formato YYYY-MM-DD
             const hoje = new Date().toISOString().split('T')[0];
 
-            // Construção da estrutura do arquivo XML
-            let xmlContent = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-            xmlContent += `<inventario>\n`;
-            xmlContent += `  <cabecalho>\n`;
-            xmlContent += `    <setor>${setor}</setor>\n`;
-            xmlContent += `    <data>${hoje}</data>\n`;
-            xmlContent += `    <colaborador_gps>${colabGps}</colaborador_gps>\n`;
-            xmlContent += `    <colaborador_manutencao>${colabManut}</colaborador_manutencao>\n`;
-            xmlContent += `  </cabecalho>\n`;
-            xmlContent += `  <itens>\n`;
+            // Montagem do cabeçalho do relatório no Excel
+            const dadosExcel = [
+                ["INVENTÁRIO - SETOR", setor],
+                ["DATA DE REALIZAÇÃO", hoje],
+                ["COLABORADOR GPS", colabGps],
+                ["COLABORADOR MANUTENÇÃO", colabManut],
+                [], // Linha em branco
+                ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "QUANTIDADE"] // Cabeçalho da tabela
+            ];
 
+            // Adiciona as linhas com os itens contados
             dadosInventario.forEach(item => {
-                xmlContent += `    <item>\n`;
-                xmlContent += `      <seq>${item.seq}</seq>\n`;
-                xmlContent += `      <setor>${item.setor}</setor>\n`;
-                xmlContent += `      <yg>${item.yg}</yg>\n`;
-                xmlContent += `      <desc>${item.desc}</desc>\n`;
-                xmlContent += `      <quantidade>${item.qtd}</quantidade>\n`;
-                xmlContent += `    </item>\n`;
+                dadosExcel.push([
+                    item.seq,
+                    item.setor,
+                    item.yg,
+                    item.desc,
+                    item.qtd
+                ]);
             });
 
-            xmlContent += `  </itens>\n`;
-            xmlContent += `</inventario>`;
+            // Criação da pasta de trabalho (Workbook) e da planilha (Worksheet)
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(dadosExcel);
 
-            // Download do Arquivo XML no celular
-            const blob = new Blob([xmlContent], { type: 'application/xml' });
-            const link = document.createElement('a');
-            const nomeArquivo = `inventario_${setor}_${hoje}.xml`;
+            // Ajusta a largura das colunas
+            ws['!cols'] = [
+                { wch: 8 },  // SEQ
+                { wch: 15 }, // SETOR
+                { wch: 18 }, // CÓDIGO (YG)
+                { wch: 30 }, // DESCRIÇÃO
+                { wch: 15 }  // QUANTIDADE
+            ];
 
-            link.href = URL.createObjectURL(blob);
-            link.download = nomeArquivo;
-            link.click();
+            XLSX.utils.book_append_sheet(wb, ws, "Inventario");
 
-            // Limpa os dados armazenados e fecha o modal
+            // Gera e dispara o download do arquivo .xlsx
+            const nomeArquivo = `inventario_${setor}_${hoje}.xlsx`;
+            XLSX.writeFile(wb, nomeArquivo);
+
             localStorage.removeItem('dadosInventario');
-            document.getElementById('modal').style.display = 'none';
-            alert('Inventário gerado e salvo com sucesso!');
+            document.getElementById('modal-finalizar').style.display = 'none';
+            alert('Inventário Excel gerado e salvo com sucesso!');
             window.location.href = 'index.html';
         }
 
-        // Renderização inicial
         atualizarTabelaUI();
+        iniciarCameraTraseira();
     </script>
 </body>
 </html>
