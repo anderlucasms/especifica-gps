@@ -1,10 +1,10 @@
 // Listas pré-cadastradas por setor
         const listasSetores = {
             MONTAGEM: [ //Siga essa configuração: { seq: "", setor: "MONTAGEM", yg: "YG", desc: "" }
-                { seq: "1", setor: "MONTAGEM", yg: "YG712361681", desc: "Suporte do Painel" },
-                { seq: "2", setor: "MONTAGEM", yg: "YG710402201", desc: "Conjunto Presilha" },
-                { seq: "3", setor: "MONTAGEM", yg: "YG769203921", desc: "Tinta Primer Cinza" },
-                { seq: "4", setor: "MONTAGEM", yg: "YG731760581", desc: "Verniz PU" }
+                { seq: "1", setor: "MONTAGEM", yg: "Y0712361681", desc: "Suporte do Painel" },
+                { seq: "2", setor: "MONTAGEM", yg: "Y0710402201", desc: "Conjunto Presilha" },
+                { seq: "3", setor: "MONTAGEM", yg: "Y0769203921", desc: "Tinta Primer Cinza" },
+                { seq: "4", setor: "MONTAGEM", yg: "Y0731760581", desc: "Verniz PU" }
             ],
             PINTURA: [
                 { seq: "1", setor: "PINTURA", yg: "789123456003", desc: "Tinta Primer Cinza" },
