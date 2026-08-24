@@ -6,8 +6,8 @@
     <title>Leitor - Inventário</title>
     <!-- Biblioteca HTML5-QRCode -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- Biblioteca SheetJS para geração de arquivos Excel (.xlsx) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Biblioteca SheetJS (Style edition para suporte a estilos no Excel) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
         body { background-color: #f8f9fa; display: flex; justify-content: center; padding: 16px; }
@@ -31,10 +31,14 @@
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 16px; z-index: 100; }
         .modal-body { background: #fff; padding: 20px; border-radius: 10px; width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; border: 2px solid #1f385c; }
-        .modal-body h3 { font-size: 1.1rem; color: #1f385c; text-align: center; }
+        .modal-body h3 { font-size: 1.1rem; color: #1f385c; text-align: center; border-bottom: 2px solid #1f385c; padding-bottom: 6px; }
         .modal-body label { font-size: 0.85rem; font-weight: bold; }
         .modal-body input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
         
+        .item-info-card { background-color: #f8f9fa; border: 1px solid #1f385c; border-radius: 6px; padding: 10px; font-size: 0.88rem; line-height: 1.5; }
+        .item-info-card p { margin-bottom: 4px; }
+        .item-info-card p:last-child { margin-bottom: 0; }
+
         .btn-confirm { background-color: #28a745; color: #fff; }
         .btn-cancel { background-color: #dc3545; color: #fff; }
         .btn-save { background-color: #1f385c; color: #fff; }
@@ -68,7 +72,7 @@
     <div class="modal-overlay" id="modal-confirmar-bip">
         <div class="modal-body">
             <h3>Confirmar Item Bipado</h3>
-            <div id="dados-item-bipado"></div>
+            <div id="dados-item-bipado" class="item-info-card"></div>
             <button onclick="confirmarSomaItem()" class="btn btn-confirm">CONFIRMAR E SOMAR (+1)</button>
             <button onclick="cancelarBip()" class="btn btn-cancel">CANCELAR</button>
         </div>
@@ -94,7 +98,6 @@
     <script>
         const setor = localStorage.getItem('setorAtivo') || 'GERAL';
         let dadosInventario = JSON.parse(localStorage.getItem('dadosInventario')) || [];
-        // Recupera o histórico das últimas bipagens (ou inicia um vetor vazio)
         let ultimosBipados = JSON.parse(localStorage.getItem('ultimosBipados')) || [];
         
         let itemPendente = null;
@@ -102,7 +105,7 @@
 
         document.getElementById('sector-title').innerText = `LEITOR - SETOR ${setor}`;
 
-        // Exibe na tela apenas as últimas 3 peças bipadas
+        // Atualiza UI com as últimas 3 peças bipadas
         function atualizarTabelaUI() {
             const listContainer = document.getElementById('items-list');
             listContainer.innerHTML = '';
@@ -112,7 +115,6 @@
                 return;
             }
 
-            // Pega no máximo as 3 últimas peças
             const ultimos3 = ultimosBipados.slice(0, 3);
 
             ultimos3.forEach(yg => {
@@ -120,8 +122,8 @@
                 if (item) {
                     listContainer.innerHTML += `
                         <div class="item-row">
-                            <span>${item.desc} <br><small style="color:#666">${item.yg}</small></span>
-                            <span><strong>Qtd Total: ${item.qtd}</strong></span>
+                            <span><strong>Seq: ${item.seq}</strong> - ${item.desc} <br><small style="color:#666">Código: ${item.yg}</small></span>
+                            <span><strong>Qtd: ${item.qtd}</strong></span>
                         </div>
                     `;
                 }
@@ -151,10 +153,12 @@
                 html5QrCode.pause();
                 itemPendente = item;
 
+                // Exibe TODAS as informações do item, exceto o Setor
                 document.getElementById('dados-item-bipado').innerHTML = `
-                    <p><strong>Código:</strong> ${item.yg}</p>
+                    <p><strong>Sequência (SEQ):</strong> ${item.seq}</p>
+                    <p><strong>Código (YG):</strong> ${item.yg}</p>
                     <p><strong>Descrição:</strong> ${item.desc}</p>
-                    <p><strong>Qtd Atual:</strong> ${item.qtd}</p>
+                    <p><strong>Quantidade Atual:</strong> ${item.qtd}</p>
                 `;
                 document.getElementById('modal-confirmar-bip').style.display = 'flex';
             } else {
@@ -169,14 +173,11 @@
             if (itemPendente) {
                 itemPendente.qtd += 1;
                 
-                // Adiciona o código no início do histórico das peças bipadas
                 ultimosBipados.unshift(itemPendente.yg);
-                // Mantém apenas os últimos 3 no histórico
                 if (ultimosBipados.length > 3) {
                     ultimosBipados = ultimosBipados.slice(0, 3);
                 }
 
-                // Salva no localStorage
                 localStorage.setItem('dadosInventario', JSON.stringify(dadosInventario));
                 localStorage.setItem('ultimosBipados', JSON.stringify(ultimosBipados));
 
@@ -236,20 +237,23 @@
                 return;
             }
 
-            const hoje = new Date().toISOString().split('T')[0];
+            const hoje = new Date().toLocaleDateString('pt-BR');
 
-            const dadosExcel = [
-                ["INVENTÁRIO - SETOR", setor],
-                ["DATA DE REALIZAÇÃO", hoje],
-                ["COLABORADOR GPS", colabGps],
-                ["COLABORADOR MANUTENÇÃO", colabManut],
-                [],
+            // Criação da planilha formatada via XLSX Style
+            const wb = XLSX.utils.book_new();
+            const wsData = [
+                ["INVENTÁRIO FÍSICO DE MATERIAIS", ""],
+                ["SETOR:", setor],
+                ["DATA DE REALIZAÇÃO:", hoje],
+                ["RESPONSÁVEL GPS:", colabGps],
+                ["RESPONSÁVEL MANUTENÇÃO:", colabManut],
+                [], // Linha em branco
                 ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "QUANTIDADE"]
             ];
 
-            // Exporta TODOS os itens cadastrados no setor para o Excel
+            // Inserção dos dados
             dadosInventario.forEach(item => {
-                dadosExcel.push([
+                wsData.push([
                     item.seq,
                     item.setor,
                     item.yg,
@@ -258,27 +262,92 @@
                 ]);
             });
 
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(dadosExcel);
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
 
+            // Definição de Estilos
+            const thinBorder = {
+                top: { style: 'thin', color: { rgb: 'D3D3D3' } },
+                bottom: { style: 'thin', color: { rgb: 'D3D3D3' } },
+                left: { style: 'thin', color: { rgb: 'D3D3D3' } },
+                right: { style: 'thin', color: { rgb: 'D3D3D3' } }
+            };
+
+            const headerTitleStyle = {
+                font: { bold: true, color: { rgb: 'FFFFFF' }, size: 12 },
+                fill: { fgColor: { rgb: '1F385C' } },
+                alignment: { vertical: 'center' }
+            };
+
+            const metaLabelStyle = {
+                font: { bold: true, color: { rgb: '1F385C' } }
+            };
+
+            const tableHeaderStyle = {
+                font: { bold: true, color: { rgb: 'FFFFFF' }, size: 10 },
+                fill: { fgColor: { rgb: '2D3748' } },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: thinBorder
+            };
+
+            const cellStyleCenter = (isZebra) => ({
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: thinBorder,
+                fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
+            });
+
+            const cellStyleLeft = (isZebra) => ({
+                alignment: { horizontal: 'left', vertical: 'center' },
+                border: thinBorder,
+                fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
+            });
+
+            // Aplicação dos Estilos na Planilha
+            // Título Principal (Linha 1)
+            ws['A1'].s = headerTitleStyle;
+
+            // Metadados (Linhas 2 a 5)
+            for (let r = 2; r <= 5; r++) {
+                if (ws[`A${r}`]) ws[`A${r}`].s = metaLabelStyle;
+            }
+
+            // Cabeçalho da Tabela (Linha 7 -> índice A7:E7)
+            const columns = ['A', 'B', 'C', 'D', 'E'];
+            columns.forEach(col => {
+                if (ws[`${col}7`]) ws[`${col}7`].s = tableHeaderStyle;
+            });
+
+            // Estilização das Linhas de Dados (Linha 8 em diante)
+            const startRow = 8;
+            dadosInventario.forEach((_, idx) => {
+                const rowNum = startRow + idx;
+                const isZebra = idx % 2 === 1;
+
+                if (ws[`A${rowNum}`]) ws[`A${rowNum}`].s = cellStyleCenter(isZebra);
+                if (ws[`B${rowNum}`]) ws[`B${rowNum}`].s = cellStyleCenter(isZebra);
+                if (ws[`C${rowNum}`]) ws[`C${rowNum}`].s = cellStyleCenter(isZebra);
+                if (ws[`D${rowNum}`]) ws[`D${rowNum}`].s = cellStyleLeft(isZebra);
+                if (ws[`E${rowNum}`]) ws[`E${rowNum}`].s = cellStyleCenter(isZebra);
+            });
+
+            // Largura Ajustada das Colunas
             ws['!cols'] = [
                 { wch: 8 },  // SEQ
-                { wch: 15 }, // SETOR
+                { wch: 16 }, // SETOR
                 { wch: 18 }, // CÓDIGO (YG)
-                { wch: 30 }, // DESCRIÇÃO
-                { wch: 15 }  // QUANTIDADE
+                { wch: 38 }, // DESCRIÇÃO
+                { wch: 14 }  // QUANTIDADE
             ];
 
-            XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+            XLSX.utils.book_append_sheet(wb, ws, "Inventário");
 
-            const nomeArquivo = `inventario_${setor}_${hoje}.xlsx`;
+            const dataFormatada = new Date().toISOString().split('T')[0];
+            const nomeArquivo = `inventario_${setor}_${dataFormatada}.xlsx`;
             XLSX.writeFile(wb, nomeArquivo);
 
-            // Limpa o inventário e histórico da memória ao finalizar
             localStorage.removeItem('dadosInventario');
             localStorage.removeItem('ultimosBipados');
             document.getElementById('modal-finalizar').style.display = 'none';
-            alert('Inventário Excel gerado e salvo com sucesso!');
+            alert('Inventário Excel gerado e formatado com sucesso!');
             window.location.href = 'index.html';
         }
 
