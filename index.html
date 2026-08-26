@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             --card-bg: #ffffff;
             --text-main: #0f172a;
             --text-sub: #475569;
@@ -33,28 +32,28 @@
         .container {
             width: 100%;
             max-width: 440px;
-            min-height: 92vh;
             background-color: var(--card-bg);
             border-radius: 24px;
-            padding: 24px 20px;
+            padding: 20px 18px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             align-items: center;
-            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.1);
         }
 
+        /* Cabeçalho no tamanho original bonito */
         .header-box {
             width: 100%;
             background: linear-gradient(135deg, #1f385c 0%, #0f172a 100%);
             border-radius: 18px;
-            padding: 24px 16px;
+            padding: 20px 16px;
             text-align: center;
             box-shadow: 0 6px 16px rgba(31, 56, 92, 0.3);
+            margin-bottom: 12px; /* Reduzido espaço abaixo do cabeçalho */
         }
 
         .header-box h1 {
-            font-size: 1.6rem;
+            font-size: 1.5rem;
             font-weight: 800;
             color: #ffffff;
             letter-spacing: 0.5px;
@@ -62,30 +61,28 @@
         }
 
         .header-box p {
-            font-size: 1.05rem;
+            font-size: 1rem;
             color: #93c5fd;
-            margin-top: 6px;
+            margin-top: 4px;
             font-weight: 600;
         }
 
         .section-title {
             width: 100%;
             text-align: center;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: 800;
             color: var(--text-sub);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin: 10px 0;
+            margin-bottom: 12px; /* Reduzido o espaço para os botões */
         }
 
         .nav-list {
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            flex-grow: 1;
-            justify-content: center;
+            gap: 12px; /* Espaçamento entre os botões ajustado */
         }
 
         .btn-link {
@@ -97,11 +94,11 @@
             font-size: 1.25rem;
             font-weight: 800;
             color: #ffffff;
-            padding: 20px 24px;
+            padding: 18px 22px;
             border-radius: 16px;
             border: none;
             cursor: pointer;
-            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             transition: all 0.2s ease-in-out;
         }
 
@@ -120,11 +117,11 @@
         .btn-prensas { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
 
         .footer-note {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: var(--text-sub);
             text-align: center;
             font-weight: 600;
-            margin-top: 10px;
+            margin-top: 16px;
         }
     </style>
 </head>
