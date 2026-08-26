@@ -4,44 +4,155 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leitor - Inventário</title>
-    <!-- Biblioteca HTML5-QRCode -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- Biblioteca SheetJS (Style edition para suporte a estilos no Excel) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-        body { background-color: #f8f9fa; display: flex; justify-content: center; padding: 16px; }
-        .container { width: 100%; max-width: 380px; background-color: #fff; border: 2px solid #000; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #e2e8f0; display: flex; justify-content: center; padding: 12px; }
         
-        .header-box { background-color: #ededed; border: 2px solid #1f385c; border-radius: 12px; padding: 10px; text-align: center; }
-        .header-box h2 { font-size: 1.1rem; color: #000; }
-
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; background-color: #000; min-height: 200px; }
+        .container {
+            width: 100%;
+            max-width: 440px;
+            background-color: #fff;
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        }
         
-        .result-box { background-color: #f1f3f5; border: 1.5px solid #1a233a; border-radius: 8px; padding: 10px; font-size: 0.85rem; }
+        .header-box {
+            background: linear-gradient(135deg, #1f385c 0%, #0f172a 100%);
+            border-radius: 14px;
+            padding: 14px;
+            text-align: center;
+            color: #fff;
+        }
+        .header-box h2 { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; }
+
+        /* Camera ajustada: mais compacta verticalmente */
+        #reader {
+            width: 100%;
+            max-height: 180px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 2px solid #1f385c;
+            background-color: #000;
+        }
+        #reader video { object-fit: cover !important; }
         
-        .summary-box { border-top: 1px dashed #ccc; padding-top: 10px; }
-        .summary-title { font-weight: bold; margin-bottom: 6px; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
-        .item-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-        .empty-info { font-size: 0.8rem; color: #777; font-style: italic; }
-
-        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; text-align: center; font-size: 0.95rem; }
-        .btn-finish { background-color: #28a745; color: #fff; }
-        .btn-back { background-color: #6c757d; color: #fff; border: none; margin-top: 4px; }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 16px; z-index: 100; }
-        .modal-body { background: #fff; padding: 20px; border-radius: 10px; width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; border: 2px solid #1f385c; }
-        .modal-body h3 { font-size: 1.1rem; color: #1f385c; text-align: center; border-bottom: 2px solid #1f385c; padding-bottom: 6px; }
-        .modal-body label { font-size: 0.85rem; font-weight: bold; }
-        .modal-body input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
+        .result-box {
+            background-color: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
         
-        .item-info-card { background-color: #f8f9fa; border: 1px solid #1f385c; border-radius: 6px; padding: 10px; font-size: 0.88rem; line-height: 1.5; }
-        .item-info-card p { margin-bottom: 4px; }
-        .item-info-card p:last-child { margin-bottom: 0; }
+        .summary-box {
+            border-top: 2px dashed #cbd5e1;
+            padding-top: 10px;
+        }
+        .summary-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+            background-color: #f1f5f9;
+            padding: 10px 12px;
+            border-radius: 10px;
+        }
+        .empty-info { font-size: 1rem; color: #64748b; font-style: italic; }
 
-        .btn-confirm { background-color: #28a745; color: #fff; }
-        .btn-cancel { background-color: #dc3545; color: #fff; }
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            font-weight: 800;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .btn:active { transform: scale(0.98); }
+
+        .btn-list { background-color: #0284c7; color: #fff; }
+        .btn-finish { background-color: #16a34a; color: #fff; }
+        .btn-back { background-color: #64748b; color: #fff; margin-top: 2px; }
+
+        /* Estilos dos Popups (Modais) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.75);
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            z-index: 1000;
+        }
+        .modal-body {
+            background: #fff;
+            padding: 24px 20px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            border: 3px solid #1f385c;
+        }
+        .modal-body h3 { font-size: 1.35rem; font-weight: 800; color: #1f385c; text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .modal-body label { font-size: 1.05rem; font-weight: 700; color: #334155; }
+        .modal-body input { width: 100%; padding: 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 1.1rem; font-weight: 600; margin-top: 4px; }
+        
+        .item-info-card { background-color: #f8fafc; border: 2px solid #1f385c; border-radius: 12px; padding: 14px; font-size: 1.1rem; line-height: 1.6; }
+
+        .btn-confirm { background-color: #16a34a; color: #fff; }
+        .btn-cancel { background-color: #dc2626; color: #fff; }
         .btn-save { background-color: #1f385c; color: #fff; }
+
+        /* Estilos para a Lista Completa em Popup */
+        .full-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        .list-card {
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+        }
+        .list-card-bipado {
+            background-color: #dcfce7;
+            border: 2px solid #16a34a;
+            color: #14532d;
+        }
+        .list-card-zerado {
+            background-color: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #7f1d1d;
+        }
     </style>
 </head>
 <body>
@@ -51,6 +162,7 @@
             <h2 id="sector-title">LEITOR - INVENTÁRIO</h2>
         </header>
 
+        <!-- Leitor de Câmera -->
         <div id="reader"></div>
 
         <div class="result-box" id="result">
@@ -58,17 +170,16 @@
         </div>
 
         <div class="summary-box">
-            <div class="summary-title">
-                <span>Últimas 3 peças bipadas:</span>
-            </div>
+            <div class="summary-title">Últimas 3 peças bipadas:</div>
             <div id="items-list"></div>
         </div>
 
-        <button onclick="abrirModalFinalizar()" class="btn btn-finish">FINALIZAR INVENTÁRIO</button>
+        <button onclick="abrirModalLista()" class="btn btn-list">📋 VER LISTA COMPLETA</button>
+        <button onclick="abrirModalFinalizar()" class="btn btn-finish">✅ FINALIZAR INVENTÁRIO</button>
         <button onclick="confirmarVoltar()" class="btn btn-back">VOLTAR</button>
     </div>
 
-    <!-- Modal de Confirmação do Item Bipado -->
+    <!-- Modal: Confirmação do Item Bipado -->
     <div class="modal-overlay" id="modal-confirmar-bip">
         <div class="modal-body">
             <h3>Confirmar Item Bipado</h3>
@@ -78,10 +189,20 @@
         </div>
     </div>
 
-    <!-- Modal de Finalização -->
+    <!-- Modal: Lista Completa de Materiais -->
+    <div class="modal-overlay" id="modal-lista-completa">
+        <div class="modal-body">
+            <h3>Lista de Materiais</h3>
+            <input type="text" id="inputBuscaLista" placeholder="🔍 Pesquisar código ou descrição..." oninput="filtrarListaCompleta()">
+            <div id="container-lista-completa" class="full-list-container"></div>
+            <button onclick="fecharModalLista()" class="btn btn-cancel">FECHAR</button>
+        </div>
+    </div>
+
+    <!-- Modal: Finalização do Inventário -->
     <div class="modal-overlay" id="modal-finalizar">
         <div class="modal-body">
-            <h3>Responsáveis pelo Inventário</h3>
+            <h3>Responsáveis</h3>
             <div>
                 <label>Colaborador-GPS:</label>
                 <input type="text" id="colabGps" placeholder="Nome do colaborador GPS">
@@ -105,7 +226,6 @@
 
         document.getElementById('sector-title').innerText = `LEITOR - SETOR ${setor}`;
 
-        // Atualiza UI com as últimas 3 peças bipadas
         function atualizarTabelaUI() {
             const listContainer = document.getElementById('items-list');
             listContainer.innerHTML = '';
@@ -122,8 +242,8 @@
                 if (item) {
                     listContainer.innerHTML += `
                         <div class="item-row">
-                            <span><strong>Seq: ${item.seq}</strong> - ${item.desc} <br><small style="color:#666">Código: ${item.yg}</small></span>
-                            <span><strong>Qtd: ${item.qtd}</strong></span>
+                            <span><strong>Seq ${item.seq}</strong> - ${item.desc}<br><small style="color:#475569">Cód: ${item.yg}</small></span>
+                            <span style="font-size: 1.15rem; font-weight:800;">Qtd: ${item.qtd}</span>
                         </div>
                     `;
                 }
@@ -132,7 +252,8 @@
 
         function iniciarCameraTraseira() {
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 220, height: 120 } };
+            // Área de escaneamento ampliada para fácil captura (260x140)
+            const config = { fps: 10, qrbox: { width: 260, height: 140 } };
 
             html5QrCode.start(
                 { facingMode: "environment" },
@@ -153,7 +274,6 @@
                 html5QrCode.pause();
                 itemPendente = item;
 
-                // Exibe TODAS as informações do item, exceto o Setor
                 document.getElementById('dados-item-bipado').innerHTML = `
                     <p><strong>Sequência (SEQ):</strong> ${item.seq}</p>
                     <p><strong>Código (YG):</strong> ${item.yg}</p>
@@ -163,7 +283,7 @@
                 document.getElementById('modal-confirmar-bip').style.display = 'flex';
             } else {
                 resultDiv.innerHTML = `
-                    <p style="color: red;"><strong>✖ Código Não Encontrado!</strong></p>
+                    <p style="color: #dc2626;"><strong>✖ Código Não Encontrado!</strong></p>
                     <p><strong>Código Lido:</strong> ${decodedText}</p>
                 `;
             }
@@ -184,7 +304,7 @@
                 atualizarTabelaUI();
 
                 document.getElementById('result').innerHTML = `
-                    <p style="color: green;"><strong>✔ Contagem Atualizada!</strong></p>
+                    <p style="color: #16a34a;"><strong>✔ Contagem Atualizada!</strong></p>
                     <p><strong>Item:</strong> ${itemPendente.desc}</p>
                     <p><strong>Total Bipado:</strong> ${itemPendente.qtd}</p>
                 `;
@@ -194,7 +314,7 @@
 
         function cancelarBip() {
             document.getElementById('result').innerHTML = `
-                <p style="color: #6c757d;"><strong>Leitura cancelada pelo usuário.</strong></p>
+                <p style="color: #64748b;"><strong>Leitura cancelada pelo usuário.</strong></p>
             `;
             fecharModalConfirmacao();
         }
@@ -205,8 +325,52 @@
             html5QrCode.resume();
         }
 
+        /* Funções da Lista Completa em Modal */
+        function abrirModalLista() {
+            renderizarListaCompleta(dadosInventario);
+            document.getElementById('modal-lista-completa').style.display = 'flex';
+        }
+
+        function fecharModalLista() {
+            document.getElementById('modal-lista-completa').style.display = 'none';
+            document.getElementById('inputBuscaLista').value = '';
+        }
+
+        function renderizarListaCompleta(lista) {
+            const container = document.getElementById('container-lista-completa');
+            container.innerHTML = '';
+
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="empty-info">Nenhum item encontrado.</p>';
+                return;
+            }
+
+            lista.forEach(item => {
+                const classeCor = item.qtd > 0 ? 'list-card-bipado' : 'list-card-zerado';
+                container.innerHTML += `
+                    <div class="list-card ${classeCor}">
+                        <div>
+                            <div>${item.seq}. ${item.desc}</div>
+                            <small style="opacity: 0.8">Cód: ${item.yg}</small>
+                        </div>
+                        <div style="font-size:1.2rem;">Qtd: ${item.qtd}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function filtrarListaCompleta() {
+            const termo = document.getElementById('inputBuscaLista').value.toLowerCase();
+            const filtrados = dadosInventario.filter(item => 
+                item.desc.toLowerCase().includes(termo) || 
+                item.yg.toLowerCase().includes(termo) ||
+                item.seq.toString().includes(termo)
+            );
+            renderizarListaCompleta(filtrados);
+        }
+
         function confirmarVoltar() {
-            const resposta = confirm("Deseja realmente voltar?\n\nOs dados não finalizados continuarão salvos até que um novo setor seja selecionado.");
+            const resposta = confirm("Deseja realmente voltar?\n\nOs dados salvos continuarão armazenados.");
             if (resposta) {
                 if (html5QrCode) {
                     html5QrCode.stop().then(() => {
@@ -239,7 +403,6 @@
 
             const hoje = new Date().toLocaleDateString('pt-BR');
 
-            // Criação da planilha formatada via XLSX Style
             const wb = XLSX.utils.book_new();
             const wsData = [
                 ["INVENTÁRIO FÍSICO DE MATERIAIS", ""],
@@ -247,11 +410,10 @@
                 ["DATA DE REALIZAÇÃO:", hoje],
                 ["RESPONSÁVEL GPS:", colabGps],
                 ["RESPONSÁVEL MANUTENÇÃO:", colabManut],
-                [], // Linha em branco
+                [],
                 ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "QUANTIDADE"]
             ];
 
-            // Inserção dos dados
             dadosInventario.forEach(item => {
                 wsData.push([
                     item.seq,
@@ -264,7 +426,6 @@
 
             const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-            // Definição de Estilos
             const thinBorder = {
                 top: { style: 'thin', color: { rgb: 'D3D3D3' } },
                 bottom: { style: 'thin', color: { rgb: 'D3D3D3' } },
@@ -278,9 +439,7 @@
                 alignment: { vertical: 'center' }
             };
 
-            const metaLabelStyle = {
-                font: { bold: true, color: { rgb: '1F385C' } }
-            };
+            const metaLabelStyle = { font: { bold: true, color: { rgb: '1F385C' } } };
 
             const tableHeaderStyle = {
                 font: { bold: true, color: { rgb: 'FFFFFF' }, size: 10 },
@@ -301,22 +460,17 @@
                 fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
             });
 
-            // Aplicação dos Estilos na Planilha
-            // Título Principal (Linha 1)
             ws['A1'].s = headerTitleStyle;
 
-            // Metadados (Linhas 2 a 5)
             for (let r = 2; r <= 5; r++) {
                 if (ws[`A${r}`]) ws[`A${r}`].s = metaLabelStyle;
             }
 
-            // Cabeçalho da Tabela (Linha 7 -> índice A7:E7)
             const columns = ['A', 'B', 'C', 'D', 'E'];
             columns.forEach(col => {
                 if (ws[`${col}7`]) ws[`${col}7`].s = tableHeaderStyle;
             });
 
-            // Estilização das Linhas de Dados (Linha 8 em diante)
             const startRow = 8;
             dadosInventario.forEach((_, idx) => {
                 const rowNum = startRow + idx;
@@ -329,13 +483,12 @@
                 if (ws[`E${rowNum}`]) ws[`E${rowNum}`].s = cellStyleCenter(isZebra);
             });
 
-            // Largura Ajustada das Colunas
             ws['!cols'] = [
-                { wch: 8 },  // SEQ
-                { wch: 16 }, // SETOR
-                { wch: 18 }, // CÓDIGO (YG)
-                { wch: 38 }, // DESCRIÇÃO
-                { wch: 14 }  // QUANTIDADE
+                { wch: 8 },
+                { wch: 16 },
+                { wch: 18 },
+                { wch: 38 },
+                { wch: 14 }
             ];
 
             XLSX.utils.book_append_sheet(wb, ws, "Inventário");
