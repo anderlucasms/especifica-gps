@@ -221,6 +221,13 @@
 
         document.getElementById('sector-title').innerText = `SETOR ${setor}`;
 
+        // Função auxiliar para obter o valor de TOIOS (suporta maiúsculas e minúsculas)
+        function getToiosValue(item) {
+            if (item.toios !== undefined) return item.toios;
+            if (item.TOIOS !== undefined) return item.TOIOS;
+            return 0;
+        }
+
         function atualizarTabelaUI() {
             const listContainer = document.getElementById('items-list');
             listContainer.innerHTML = '';
@@ -235,10 +242,11 @@
             ultimos3.forEach(yg => {
                 const item = dadosInventario.find(i => i.yg === yg);
                 if (item) {
+                    const toios = getToiosValue(item);
                     listContainer.innerHTML += `
                         <div class="item-row">
                             <span><strong>Seq ${item.seq}</strong> - ${item.desc}<br><small style="color:#475569">Cód: ${item.yg}</small></span>
-                            <span style="font-size: 1.15rem; font-weight:800;">Qtd: ${item.qtd}</span>
+                            <span style="font-size: 1.15rem; font-weight:800;">Qtd: ${item.qtd} / ${toios}</span>
                         </div>
                     `;
                 }
@@ -268,11 +276,13 @@
                 html5QrCode.pause();
                 itemPendente = item;
 
+                const toios = getToiosValue(item);
+
                 document.getElementById('dados-item-bipado').innerHTML = `
                     <p><strong>Sequência (SEQ):</strong> ${item.seq}</p>
                     <p><strong>Código (YG):</strong> ${item.yg}</p>
                     <p><strong>Descrição:</strong> ${item.desc}</p>
-                    <p><strong>Quantidade Atual:</strong> ${item.qtd}</p>
+                    <p><strong>Quantidade Atual / TOIOS:</strong> ${item.qtd} / ${toios}</p>
                 `;
                 document.getElementById('modal-confirmar-bip').style.display = 'flex';
             } else {
@@ -297,10 +307,12 @@
 
                 atualizarTabelaUI();
 
+                const toios = getToiosValue(itemPendente);
+
                 document.getElementById('result').innerHTML = `
                     <p style="color: #16a34a;"><strong>✔ Contagem Atualizada!</strong></p>
                     <p><strong>Item:</strong> ${itemPendente.desc}</p>
-                    <p><strong>Total Bipado:</strong> ${itemPendente.qtd}</p>
+                    <p><strong>Progresso:</strong> ${itemPendente.qtd} / ${toios}</p>
                 `;
             }
             fecharModalConfirmacao();
@@ -340,13 +352,14 @@
 
             lista.forEach(item => {
                 const classeCor = item.qtd > 0 ? 'list-card-bipado' : 'list-card-zerado';
+                const toios = getToiosValue(item);
                 container.innerHTML += `
                     <div class="list-card ${classeCor}">
                         <div>
                             <div>${item.seq}. ${item.desc}</div>
                             <small style="opacity: 0.8">Cód: ${item.yg}</small>
                         </div>
-                        <div style="font-size:1.15rem;">Qtd: ${item.qtd}</div>
+                        <div style="font-size:1.15rem;">Qtd: ${item.qtd} / ${toios}</div>
                     </div>
                 `;
             });
@@ -371,116 +384,145 @@
         }
 
         function salvarEGerarExcel() {
-            const colabGps = document.getElementById('colabGps').value.trim();
-            const colabManut = document.getElementById('colabManutencao').value.trim();
+    const colabGps = document.getElementById('colabGps').value.trim();
+    const colabManut = document.getElementById('colabManutencao').value.trim();
 
-            if (!colabGps || !colabManut) {
-                alert('Por favor, preencha o nome dos dois colaboradores.');
-                return;
-            }
+    if (!colabGps || !colabManut) {
+        alert('Por favor, preencha o nome dos dois colaboradores.');
+        return;
+    }
 
-            const hoje = new Date().toLocaleDateString('pt-BR');
+    const hoje = new Date().toLocaleDateString('pt-BR');
 
-            const wb = XLSX.utils.book_new();
-            const wsData = [
-                ["INVENTÁRIO FÍSICO DE MATERIAIS", ""],
-                ["SETOR:", setor],
-                ["DATA DE REALIZAÇÃO:", hoje],
-                ["RESPONSÁVEL GPS:", colabGps],
-                ["RESPONSÁVEL MANUTENÇÃO:", colabManut],
-                [],
-                ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "QUANTIDADE"]
-            ];
+    const wb = XLSX.utils.book_new();
+    const wsData = [
+        ["INVENTÁRIO FÍSICO DE MATERIAIS", ""],
+        ["SETOR:", setor],
+        ["DATA DE REALIZAÇÃO:", hoje],
+        ["RESPONSÁVEL GPS:", colabGps],
+        ["RESPONSÁVEL MANUTENÇÃO:", colabManut],
+        [],
+        ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "TOIOS (SISTEMA)", "QUANTIDADE BIPADA"]
+    ];
 
-            dadosInventario.forEach(item => {
-                wsData.push([
-                    item.seq,
-                    item.setor,
-                    item.yg,
-                    item.desc,
-                    item.qtd
-                ]);
-            });
+    dadosInventario.forEach(item => {
+        const toios = getToiosValue(item);
+        wsData.push([
+            item.seq,
+            item.setor,
+            item.yg,
+            item.desc,
+            toios,
+            item.qtd
+        ]);
+    });
 
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-            const thinBorder = {
-                top: { style: 'thin', color: { rgb: 'D3D3D3' } },
-                bottom: { style: 'thin', color: { rgb: 'D3D3D3' } },
-                left: { style: 'thin', color: { rgb: 'D3D3D3' } },
-                right: { style: 'thin', color: { rgb: 'D3D3D3' } }
-            };
+    const thinBorder = {
+        top: { style: 'thin', color: { rgb: 'D3D3D3' } },
+        bottom: { style: 'thin', color: { rgb: 'D3D3D3' } },
+        left: { style: 'thin', color: { rgb: 'D3D3D3' } },
+        right: { style: 'thin', color: { rgb: 'D3D3D3' } }
+    };
 
-            const headerTitleStyle = {
-                font: { bold: true, color: { rgb: 'FFFFFF' }, size: 12 },
-                fill: { fgColor: { rgb: '1F385C' } },
-                alignment: { vertical: 'center' }
-            };
+    const headerTitleStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' }, size: 12 },
+        fill: { fgColor: { rgb: '1F385C' } },
+        alignment: { vertical: 'center' }
+    };
 
-            const metaLabelStyle = { font: { bold: true, color: { rgb: '1F385C' } } };
+    const metaLabelStyle = { font: { bold: true, color: { rgb: '1F385C' } } };
 
-            const tableHeaderStyle = {
-                font: { bold: true, color: { rgb: 'FFFFFF' }, size: 10 },
-                fill: { fgColor: { rgb: '2D3748' } },
-                alignment: { horizontal: 'center', vertical: 'center' },
-                border: thinBorder
-            };
+    const tableHeaderStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' }, size: 10 },
+        fill: { fgColor: { rgb: '2D3748' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: thinBorder
+    };
 
-            const cellStyleCenter = (isZebra) => ({
-                alignment: { horizontal: 'center', vertical: 'center' },
-                border: thinBorder,
-                fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
-            });
+    const cellStyleCenter = (isZebra) => ({
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: thinBorder,
+        fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
+    });
 
-            const cellStyleLeft = (isZebra) => ({
-                alignment: { horizontal: 'left', vertical: 'center' },
-                border: thinBorder,
-                fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
-            });
+    const cellStyleLeft = (isZebra) => ({
+        alignment: { horizontal: 'left', vertical: 'center' },
+        border: thinBorder,
+        fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
+    });
 
-            ws['A1'].s = headerTitleStyle;
+    // --- Estilos para destaque de divergência / convergência ---
+    const styleStatusGreen = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: thinBorder,
+        font: { bold: true, color: { rgb: '15803D' } }, // Texto verde escuro
+        fill: { fgColor: { rgb: 'DCFCE7' } }            // Fundo verde claro
+    };
 
-            for (let r = 2; r <= 5; r++) {
-                if (ws[`A${r}`]) ws[`A${r}`].s = metaLabelStyle;
-            }
+    const styleStatusRed = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: thinBorder,
+        font: { bold: true, color: { rgb: 'B91C1C' } }, // Texto vermelho escuro
+        fill: { fgColor: { rgb: 'FEE2E2' } }            // Fundo vermelho claro
+    };
 
-            const columns = ['A', 'B', 'C', 'D', 'E'];
-            columns.forEach(col => {
-                if (ws[`${col}7`]) ws[`${col}7`].s = tableHeaderStyle;
-            });
+    // Estiliza título e cabeçalho de metadados
+    ws['A1'].s = headerTitleStyle;
 
-            const startRow = 8;
-            dadosInventario.forEach((_, idx) => {
-                const rowNum = startRow + idx;
-                const isZebra = idx % 2 === 1;
+    for (let r = 2; r <= 5; r++) {
+        if (ws[`A${r}`]) ws[`A${r}`].s = metaLabelStyle;
+    }
 
-                if (ws[`A${rowNum}`]) ws[`A${rowNum}`].s = cellStyleCenter(isZebra);
-                if (ws[`B${rowNum}`]) ws[`B${rowNum}`].s = cellStyleCenter(isZebra);
-                if (ws[`C${rowNum}`]) ws[`C${rowNum}`].s = cellStyleCenter(isZebra);
-                if (ws[`D${rowNum}`]) ws[`D${rowNum}`].s = cellStyleLeft(isZebra);
-                if (ws[`E${rowNum}`]) ws[`E${rowNum}`].s = cellStyleCenter(isZebra);
-            });
+    // Estiliza cabeçalho da tabela (Linha 7)
+    const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+    columns.forEach(col => {
+        if (ws[`${col}7`]) ws[`${col}7`].s = tableHeaderStyle;
+    });
 
-            ws['!cols'] = [
-                { wch: 8 },
-                { wch: 16 },
-                { wch: 18 },
-                { wch: 38 },
-                { wch: 14 }
-            ];
+    // Aplicação de estilos nas linhas de dados
+    const startRow = 8;
+    dadosInventario.forEach((item, idx) => {
+        const rowNum = startRow + idx;
+        const isZebra = idx % 2 === 1;
 
-            XLSX.utils.book_append_sheet(wb, ws, "Inventário");
+        if (ws[`A${rowNum}`]) ws[`A${rowNum}`].s = cellStyleCenter(isZebra);
+        if (ws[`B${rowNum}`]) ws[`B${rowNum}`].s = cellStyleCenter(isZebra);
+        if (ws[`C${rowNum}`]) ws[`C${rowNum}`].s = cellStyleCenter(isZebra);
+        if (ws[`D${rowNum}`]) ws[`D${rowNum}`].s = cellStyleLeft(isZebra);
 
-            const dataFormatada = new Date().toISOString().split('T')[0];
-            const nomeArquivo = `inventario_${setor}_${dataFormatada}.xlsx`;
-            XLSX.writeFile(wb, nomeArquivo);
+        // Validação TOIOS vs QUANTIDADE BIPADA
+        const toios = getToiosValue(item);
+        const isIgual = toios === item.qtd;
+        const statusStyle = isIgual ? styleStatusGreen : styleStatusRed;
 
-            localStorage.removeItem('dadosInventario');
-            localStorage.removeItem('ultimosBipados');
-            document.getElementById('modal-finalizar').style.display = 'none';
-            alert('Inventário Excel gerado e formatado com sucesso!');
-            window.location.href = 'index.html';
-        }
+        // Aplica a cor condicional nas colunas TOIOS (E) e QUANTIDADE BIPADA (F)
+        if (ws[`E${rowNum}`]) ws[`E${rowNum}`].s = statusStyle;
+        if (ws[`F${rowNum}`]) ws[`F${rowNum}`].s = statusStyle;
+    });
+
+    ws['!cols'] = [
+        { wch: 8 },
+        { wch: 16 },
+        { wch: 18 },
+        { wch: 38 },
+        { wch: 18 },
+        { wch: 20 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Inventário");
+
+    const dataFormatada = new Date().toISOString().split('T')[0];
+    const nomeArquivo = `inventario_${setor}_${dataFormatada}.xlsx`;
+    XLSX.writeFile(wb, nomeArquivo);
+
+    localStorage.removeItem('dadosInventario');
+    localStorage.removeItem('ultimosBipados');
+    document.getElementById('modal-finalizar').style.display = 'none';
+    alert('Inventário Excel gerado e formatado com sucesso!');
+    window.location.href = 'index.html';
+}
 
         atualizarTabelaUI();
         iniciarCameraTraseira();
