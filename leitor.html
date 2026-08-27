@@ -396,13 +396,13 @@
         
             const wb = XLSX.utils.book_new();
             const wsData = [
-                ["INVENTÁRIO FÍSICO DE MATERIAIS", ""],
+                ["INVENTÁRIO - ESPECÍFICA GPS", ""],
                 ["SETOR:", setor],
                 ["DATA DE REALIZAÇÃO:", hoje],
                 ["RESPONSÁVEL GPS:", colabGps],
                 ["RESPONSÁVEL MANUTENÇÃO:", colabManut],
                 [],
-                ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "TOIOS (SISTEMA)", "QUANTIDADE BIPADA"]
+                ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "TOIOS", "QTD BIPADA"]
             ];
         
             dadosInventario.forEach(item => {
