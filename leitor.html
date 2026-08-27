@@ -384,145 +384,147 @@
         }
 
         function salvarEGerarExcel() {
-    const colabGps = document.getElementById('colabGps').value.trim();
-    const colabManut = document.getElementById('colabManutencao').value.trim();
-
-    if (!colabGps || !colabManut) {
-        alert('Por favor, preencha o nome dos dois colaboradores.');
-        return;
-    }
-
-    const hoje = new Date().toLocaleDateString('pt-BR');
-
-    const wb = XLSX.utils.book_new();
-    const wsData = [
-        ["INVENTÁRIO FÍSICO DE MATERIAIS", ""],
-        ["SETOR:", setor],
-        ["DATA DE REALIZAÇÃO:", hoje],
-        ["RESPONSÁVEL GPS:", colabGps],
-        ["RESPONSÁVEL MANUTENÇÃO:", colabManut],
-        [],
-        ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "TOIOS (SISTEMA)", "QUANTIDADE BIPADA"]
-    ];
-
-    dadosInventario.forEach(item => {
-        const toios = getToiosValue(item);
-        wsData.push([
-            item.seq,
-            item.setor,
-            item.yg,
-            item.desc,
-            toios,
-            item.qtd
-        ]);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    const thinBorder = {
-        top: { style: 'thin', color: { rgb: 'D3D3D3' } },
-        bottom: { style: 'thin', color: { rgb: 'D3D3D3' } },
-        left: { style: 'thin', color: { rgb: 'D3D3D3' } },
-        right: { style: 'thin', color: { rgb: 'D3D3D3' } }
-    };
-
-    const headerTitleStyle = {
-        font: { bold: true, color: { rgb: 'FFFFFF' }, size: 12 },
-        fill: { fgColor: { rgb: '1F385C' } },
-        alignment: { vertical: 'center' }
-    };
-
-    const metaLabelStyle = { font: { bold: true, color: { rgb: '1F385C' } } };
-
-    const tableHeaderStyle = {
-        font: { bold: true, color: { rgb: 'FFFFFF' }, size: 10 },
-        fill: { fgColor: { rgb: '2D3748' } },
-        alignment: { horizontal: 'center', vertical: 'center' },
-        border: thinBorder
-    };
-
-    const cellStyleCenter = (isZebra) => ({
-        alignment: { horizontal: 'center', vertical: 'center' },
-        border: thinBorder,
-        fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
-    });
-
-    const cellStyleLeft = (isZebra) => ({
-        alignment: { horizontal: 'left', vertical: 'center' },
-        border: thinBorder,
-        fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
-    });
-
-    // --- Estilos para destaque de divergência / convergência ---
-    const styleStatusGreen = {
-        alignment: { horizontal: 'center', vertical: 'center' },
-        border: thinBorder,
-        font: { bold: true, color: { rgb: '15803D' } }, // Texto verde escuro
-        fill: { fgColor: { rgb: 'DCFCE7' } }            // Fundo verde claro
-    };
-
-    const styleStatusRed = {
-        alignment: { horizontal: 'center', vertical: 'center' },
-        border: thinBorder,
-        font: { bold: true, color: { rgb: 'B91C1C' } }, // Texto vermelho escuro
-        fill: { fgColor: { rgb: 'FEE2E2' } }            // Fundo vermelho claro
-    };
-
-    // Estiliza título e cabeçalho de metadados
-    ws['A1'].s = headerTitleStyle;
-
-    for (let r = 2; r <= 5; r++) {
-        if (ws[`A${r}`]) ws[`A${r}`].s = metaLabelStyle;
-    }
-
-    // Estiliza cabeçalho da tabela (Linha 7)
-    const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
-    columns.forEach(col => {
-        if (ws[`${col}7`]) ws[`${col}7`].s = tableHeaderStyle;
-    });
-
-    // Aplicação de estilos nas linhas de dados
-    const startRow = 8;
-    dadosInventario.forEach((item, idx) => {
-        const rowNum = startRow + idx;
-        const isZebra = idx % 2 === 1;
-
-        if (ws[`A${rowNum}`]) ws[`A${rowNum}`].s = cellStyleCenter(isZebra);
-        if (ws[`B${rowNum}`]) ws[`B${rowNum}`].s = cellStyleCenter(isZebra);
-        if (ws[`C${rowNum}`]) ws[`C${rowNum}`].s = cellStyleCenter(isZebra);
-        if (ws[`D${rowNum}`]) ws[`D${rowNum}`].s = cellStyleLeft(isZebra);
-
-        // Validação TOIOS vs QUANTIDADE BIPADA
-        const toios = getToiosValue(item);
-        const isIgual = toios === item.qtd;
-        const statusStyle = isIgual ? styleStatusGreen : styleStatusRed;
-
-        // Aplica a cor condicional nas colunas TOIOS (E) e QUANTIDADE BIPADA (F)
-        if (ws[`E${rowNum}`]) ws[`E${rowNum}`].s = statusStyle;
-        if (ws[`F${rowNum}`]) ws[`F${rowNum}`].s = statusStyle;
-    });
-
-    ws['!cols'] = [
-        { wch: 8 },
-        { wch: 16 },
-        { wch: 18 },
-        { wch: 38 },
-        { wch: 18 },
-        { wch: 20 }
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, "Inventário");
-
-    const dataFormatada = new Date().toISOString().split('T')[0];
-    const nomeArquivo = `inventario_${setor}_${dataFormatada}.xlsx`;
-    XLSX.writeFile(wb, nomeArquivo);
-
-    localStorage.removeItem('dadosInventario');
-    localStorage.removeItem('ultimosBipados');
-    document.getElementById('modal-finalizar').style.display = 'none';
-    alert('Inventário Excel gerado e formatado com sucesso!');
-    window.location.href = 'index.html';
-}
+            const colabGps = document.getElementById('colabGps').value.trim();
+            const colabManut = document.getElementById('colabManutencao').value.trim();
+        
+            if (!colabGps || !colabManut) {
+                alert('Por favor, preencha o nome dos dois colaboradores.');
+                return;
+            }
+        
+            const hoje = new Date().toLocaleDateString('pt-BR');
+        
+            const wb = XLSX.utils.book_new();
+            const wsData = [
+                ["INVENTÁRIO FÍSICO DE MATERIAIS", ""],
+                ["SETOR:", setor],
+                ["DATA DE REALIZAÇÃO:", hoje],
+                ["RESPONSÁVEL GPS:", colabGps],
+                ["RESPONSÁVEL MANUTENÇÃO:", colabManut],
+                [],
+                ["SEQ", "SETOR", "CÓDIGO (YG)", "DESCRIÇÃO", "TOIOS (SISTEMA)", "QUANTIDADE BIPADA"]
+            ];
+        
+            dadosInventario.forEach(item => {
+                const toiosVal = Number(getToiosValue(item)) || 0;
+                const qtdVal = Number(item.qtd) || 0;
+        
+                wsData.push([
+                    item.seq,
+                    item.setor,
+                    item.yg,
+                    item.desc,
+                    toiosVal,
+                    qtdVal
+                ]);
+            });
+        
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+        
+            const thinBorder = {
+                top: { style: 'thin', color: { rgb: 'D3D3D3' } },
+                bottom: { style: 'thin', color: { rgb: 'D3D3D3' } },
+                left: { style: 'thin', color: { rgb: 'D3D3D3' } },
+                right: { style: 'thin', color: { rgb: 'D3D3D3' } }
+            };
+        
+            const headerTitleStyle = {
+                font: { bold: true, color: { rgb: 'FFFFFF' }, size: 12 },
+                fill: { fgColor: { rgb: '1F385C' } },
+                alignment: { vertical: 'center' }
+            };
+        
+            const metaLabelStyle = { font: { bold: true, color: { rgb: '1F385C' } } };
+        
+            const tableHeaderStyle = {
+                font: { bold: true, color: { rgb: 'FFFFFF' }, size: 10 },
+                fill: { fgColor: { rgb: '2D3748' } },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: thinBorder
+            };
+        
+            const cellStyleCenter = (isZebra) => ({
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: thinBorder,
+                fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
+            });
+        
+            const cellStyleLeft = (isZebra) => ({
+                alignment: { horizontal: 'left', vertical: 'center' },
+                border: thinBorder,
+                fill: { fgColor: { rgb: isZebra ? 'F7FAFC' : 'FFFFFF' } }
+            });
+        
+            // --- Estilos para destaque condicional ---
+            const styleStatusGreen = {
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: thinBorder,
+                font: { bold: true, color: { rgb: '15803D' } }, // Texto verde escuro
+                fill: { fgColor: { rgb: 'DCFCE7' } }            // Fundo verde claro
+            };
+        
+            const styleStatusRed = {
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: thinBorder,
+                font: { bold: true, color: { rgb: 'B91C1C' } }, // Texto vermelho escuro
+                fill: { fgColor: { rgb: 'FEE2E2' } }            // Fundo vermelho claro
+            };
+        
+            // Estiliza cabeçalho e informações
+            ws['A1'].s = headerTitleStyle;
+        
+            for (let r = 2; r <= 5; r++) {
+                if (ws[`A${r}`]) ws[`A${r}`].s = metaLabelStyle;
+            }
+        
+            const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+            columns.forEach(col => {
+                if (ws[`${col}7`]) ws[`${col}7`].s = tableHeaderStyle;
+            });
+        
+            // Aplicação dos estilos por linha
+            const startRow = 8;
+            dadosInventario.forEach((item, idx) => {
+                const rowNum = startRow + idx;
+                const isZebra = idx % 2 === 1;
+        
+                if (ws[`A${rowNum}`]) ws[`A${rowNum}`].s = cellStyleCenter(isZebra);
+                if (ws[`B${rowNum}`]) ws[`B${rowNum}`].s = cellStyleCenter(isZebra);
+                if (ws[`C${rowNum}`]) ws[`C${rowNum}`].s = cellStyleCenter(isZebra);
+                if (ws[`D${rowNum}`]) ws[`D${rowNum}`].s = cellStyleLeft(isZebra);
+        
+                // Conversão numérica garantida para comparação correta
+                const toiosVal = Number(getToiosValue(item)) || 0;
+                const qtdVal = Number(item.qtd) || 0;
+        
+                const isIgual = toiosVal === qtdVal;
+                const statusStyle = isIgual ? styleStatusGreen : styleStatusRed;
+        
+                if (ws[`E${rowNum}`]) ws[`E${rowNum}`].s = statusStyle;
+                if (ws[`F${rowNum}`]) ws[`F${rowNum}`].s = statusStyle;
+            });
+        
+            ws['!cols'] = [
+                { wch: 8 },
+                { wch: 16 },
+                { wch: 18 },
+                { wch: 38 },
+                { wch: 18 },
+                { wch: 20 }
+            ];
+        
+            XLSX.utils.book_append_sheet(wb, ws, "Inventário");
+        
+            const dataFormatada = new Date().toISOString().split('T')[0];
+            const nomeArquivo = `inventario_${setor}_${dataFormatada}.xlsx`;
+            XLSX.writeFile(wb, nomeArquivo);
+        
+            localStorage.removeItem('dadosInventario');
+            localStorage.removeItem('ultimosBipados');
+            document.getElementById('modal-finalizar').style.display = 'none';
+            alert('Inventário Excel gerado e formatado com sucesso!');
+            window.location.href = 'index.html';
+        }
 
         atualizarTabelaUI();
         iniciarCameraTraseira();
